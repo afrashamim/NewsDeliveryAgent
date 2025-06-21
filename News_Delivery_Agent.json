@@ -1,0 +1,161 @@
+{
+  "name": "News Delivery Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -180,
+        -20
+      ],
+      "id": "337bff26-3989-485a-a0b9-a4a329539cf7",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1PGqevw1nj1hw5PeN5P3rjp2myQR1SgK6C_4bcP4inW4/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "News Interests",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        80,
+        -20
+      ],
+      "id": "2943881f-2af2-4a4a-96ad-eb2d1cf64072",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FCrjpceNZsnum8Qy",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://newsapi.org/v2/everything?q={{$json[\"Interests\"]}}&apiKey=fe6027d0893c4a24bcee37bf5758625e",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        -20
+      ],
+      "id": "438bd8cb-6c25-4b4b-8c6a-055964d463ef",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets').item.json['Email ID'] }}",
+        "subject": "Your Daily News Digest",
+        "message": "={{$json[\"emailBody\"]}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        -20
+      ],
+      "id": "30372635-1659-431e-a5c8-07f4e014f7ff",
+      "name": "Gmail",
+      "webhookId": "a6933331-0766-4853-88c5-54624d1c0c85",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "52vs2DUWZmjq3B3h",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = $input.first().json.articles;\n\n// Get data from Google Sheets - try different possible locations\nlet users = [];\nconst sheetsData = $('Google Sheets').all(); // Get all items from Google Sheets node\n\nconsole.log('Number of items from Google Sheets:', sheetsData.length);\n\n// Convert Google Sheets items to users array\nsheetsData.forEach((item, index) => {\n  console.log(`Item ${index}:`, JSON.stringify(item.json, null, 2));\n  users.push(item.json);\n});\n\nconsole.log('Total users found:', users.length);\n\n// Ensure articles is an array\nif (!Array.isArray(articles)) {\n  throw new Error('Articles data is not an array');\n}\n\n/** @type {Array<{ json: { email: string; emailBody: string } }>} */\nlet output = [];\n\nusers.forEach((user, index) => {\n  console.log(`Processing user ${index}:`, user);\n  \n  // Handle your actual column names\n  const email = user[\"Email ID\"] || user[\"email\"];\n  const interests = user[\"Interests\"] || user[\"interests\"];\n  \n  console.log(`User ${index} - Email: ${email}, Interests: ${interests}`);\n  \n  if (!email || !interests) {\n    console.warn(`Skipping user ${index} - missing email or interests`);\n    console.warn('Available properties:', Object.keys(user));\n    return;\n  }\n  \n  const interestList = interests.split(\",\").map(i => i.trim().toLowerCase());\n  let body = `<h2>Your Personalized News</h2><ul>`;\n  \n  const relevantArticles = articles.filter(article => {\n    const text = `${article.title || \"\"} ${article.description || \"\"} ${article.content || \"\"}`.toLowerCase();\n    return interestList.some(interest => text.includes(interest));\n  });\n  \n  const topArticles = relevantArticles.slice(0, 10);\n  \n  if (topArticles.length === 0) {\n    body += `<li>No matching news found for your interests today.</li>`;\n  } else {\n    topArticles.forEach(article => {\n      const description = article.description || article.summary || 'No description available';\n      // Truncate description if it's too long\n      const shortDescription = description.length > 150 ? description.substring(0, 150) + '...' : description;\n      \n      body += `<li>\n        <strong><a href=\"${article.url}\" target=\"_blank\">${article.title}</a></strong><br>\n        <em>${shortDescription}</em><br>\n        <a href=\"${article.url}\" target=\"_blank\" style=\"color: #007bff; text-decoration: none;\">Read full article →</a>\n      </li><br>`;\n    });\n  }\n  \n  body += `</ul>`;\n  \n  output.push({\n    json: {\n      email,\n      emailBody: body\n    }\n  });\n});\n\nconsole.log('Final output count:', output.length);\nconsole.log('Sample output:', JSON.stringify(output[0], null, 2));\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -20
+      ],
+      "id": "8fb440d2-f007-428e-9669-b30877a1cfa4",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a88a0a3b-5356-4249-9a1a-55a48664e208",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b6c48ca61299f767ecdb616384540725195af1a6154194a179fdef50eaae8148"
+  },
+  "id": "tQU6T95zTAWEix4K",
+  "tags": []
+}
