@@ -6,7 +6,7 @@ An AI-powered, automated agent built with **n8n** that fetches news from the int
 
 - 🔎 Fetches the latest news articles from News API
 - 🧠 Matches articles to user-defined interests from Google Sheets
-- ✉️ Sends personalized daily email digests (top 5 relevant articles per user)
+- ✉️ Sends personalized daily email digests (top 10 relevant articles per user)
 - 🔁 Fully autonomous and runs on a scheduled workflow
 - 📄 HTML-formatted email content for better readability
 
