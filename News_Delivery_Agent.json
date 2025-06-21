@@ -51,7 +51,7 @@
     },
     {
       "parameters": {
-        "url": "=https://newsapi.org/v2/everything?q={{$json[\"Interests\"]}}&apiKey=fe6027d0893c4a24bcee37bf5758625e",
+        "url": "=https://newsapi.org/v2/everything?q={{$json[\"Interests\"]}}&apiKey=my-api-key",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
